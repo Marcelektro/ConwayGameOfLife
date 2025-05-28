@@ -7,6 +7,14 @@
 
 bool shape[SHAPE_BUILDER_GRID_W * SHAPE_BUILDER_GRID_H];
 
+
+static bool is_dragging = false;
+
+// what state will be set when dragging,
+// determined by negated state of the first clicked cell
+static bool drag_new_alive_state = false;
+
+
 void shape_init() {
     memset(shape, 0, sizeof(shape));
 }
@@ -56,6 +64,11 @@ void shape_draw() {
 }
 
 void shape_mouse(const int button, const int state, const int x, const int y) {
+
+    // handle drag state
+    if (button == GLUT_LEFT_BUTTON)
+        is_dragging = state == GLUT_DOWN;
+
     if (state != GLUT_DOWN || button != GLUT_LEFT_BUTTON)
         return;
 
@@ -66,7 +79,28 @@ void shape_mouse(const int button, const int state, const int x, const int y) {
     const int yi = (h - y) / (h / SHAPE_BUILDER_GRID_H);
 
     if (xi >= 0 && xi < SHAPE_BUILDER_GRID_W && yi >= 0 && yi < SHAPE_BUILDER_GRID_H) {
-        shape[yi * SHAPE_BUILDER_GRID_W + xi] = !shape[yi * SHAPE_BUILDER_GRID_W + xi];
+        const bool current_state = shape[yi * SHAPE_BUILDER_GRID_W + xi];
+
+        shape[yi * SHAPE_BUILDER_GRID_W + xi] = !current_state;
+        drag_new_alive_state = !current_state; // set dragging state to the negated current state
+
+        glutPostRedisplay();
+    }
+}
+
+
+void shape_motion(const int x, const int y) {
+    if (!is_dragging)
+        return;
+
+    const int w = glutGet(GLUT_WINDOW_WIDTH);
+    const int h = glutGet(GLUT_WINDOW_HEIGHT);
+
+    const int xi = x / (w / SHAPE_BUILDER_GRID_W);
+    const int yi = (h - y) / (h / SHAPE_BUILDER_GRID_H);
+
+    if (xi >= 0 && xi < SHAPE_BUILDER_GRID_W && yi >= 0 && yi < SHAPE_BUILDER_GRID_H) {
+        shape[yi * SHAPE_BUILDER_GRID_W + xi] = drag_new_alive_state;
         glutPostRedisplay();
     }
 }

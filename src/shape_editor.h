@@ -15,4 +15,6 @@ void shape_draw();
 
 void shape_mouse(int button, int state, int x, int y);
 
+void shape_motion(int x, int y);
+
 #endif //SHAPE_EDITOR_H

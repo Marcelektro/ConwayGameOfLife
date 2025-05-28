@@ -2,6 +2,8 @@
 
 #include <GL/glut.h>
 #include <stdbool.h>
+#include <string.h>
+
 #include "rules.h"
 #include "grid.h"
 #include "render.h"
@@ -68,13 +70,7 @@ void main_mouse_func(const int button, const int state, const int x, const int y
 
     const bool set_alive = button == GLUT_LEFT_BUTTON;
 
-    bool shape_has_anything = false;
-    for (int i = 0; i < SHAPE_BUILDER_GRID_W * SHAPE_BUILDER_GRID_H; i++) {
-        if (shape[i]) {
-            shape_has_anything = true;
-            break;
-        }
-    }
+    const bool shape_has_anything = memchr(shape, 1, SHAPE_BUILDER_GRID_W * SHAPE_BUILDER_GRID_H) != NULL;
 
     if (shape_editor_win && shape_has_anything) {
         // set shape cells
@@ -156,10 +152,6 @@ void shape_reshape_func(const int w, const int h) {
     glMatrixMode(GL_MODELVIEW);
 }
 
-void shape_mouse_func(const int b, const int s, const int x, const int y) {
-    shape_mouse(b, s, x, y);
-}
-
 
 /********\
 |* Main *|
@@ -203,7 +195,8 @@ int main(int argc, char **argv) {
     shape_editor_win = glutCreateWindow("Shape Builder");
     glutDisplayFunc(shape_display_func);
     glutReshapeFunc(shape_reshape_func);
-    glutMouseFunc(shape_mouse_func);
+    glutMouseFunc(shape_mouse);
+    glutMotionFunc(shape_motion);
 
     glutMainLoop();
     return 0;
