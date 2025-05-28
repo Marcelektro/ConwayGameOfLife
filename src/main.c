@@ -9,6 +9,7 @@
 #include "render.h"
 #include "ui_menu.h"
 #include "shape_editor.h"
+#include "mouse_state.h"
 
 #define WIN_W 1280
 #define WIN_H 720
@@ -20,6 +21,8 @@ static Rules rules;
 static int delay_ms = 100;
 static bool paused = false;
 static int iterations = 0;
+
+static MouseState main_mouse_state = {0};
 
 static int win_main, options_win, shape_editor_win;
 
@@ -42,6 +45,11 @@ void timer_main([[maybe_unused]] int value) {
     glutTimerFunc(delay_ms, timer_main, 0);
 }
 
+
+void main_force_redraw() {
+    glutSetWindow(win_main);
+    glutPostRedisplay();
+}
 
 void main_display_func() {
     glutSetWindow(win_main);
@@ -87,6 +95,15 @@ void main_mouse_func(const int button, const int state, const int x, const int y
     }
 
     glutPostRedisplay();
+}
+
+void main_motion_func(const int x, const int y) {
+    main_mouse_state.x = x;
+    main_mouse_state.y = y;
+    main_mouse_state.inside = true;
+    main_mouse_state.last_move = time(NULL);
+
+    main_force_redraw();
 }
 
 void main_keyboard_func(const unsigned char key, [[maybe_unused]] int x, [[maybe_unused]] int y) {
@@ -171,7 +188,7 @@ int main(int argc, char **argv) {
 
 
     // init 3 windows
-    render_init(WIN_W, WIN_H, GRID_W, GRID_H);
+    render_init(WIN_W, WIN_H, GRID_W, GRID_H, &main_mouse_state);
     ui_init(&rules, &delay_ms, &paused);
     shape_init();
 
@@ -179,6 +196,8 @@ int main(int argc, char **argv) {
     glutDisplayFunc(main_display_func);
     glutReshapeFunc(main_reshape_func);
     glutMouseFunc(main_mouse_func);
+    glutMotionFunc(main_motion_func);
+    glutPassiveMotionFunc(main_motion_func);
     glutKeyboardFunc(main_keyboard_func);
     glutTimerFunc(delay_ms, timer_main, 0);
 

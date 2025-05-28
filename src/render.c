@@ -1,6 +1,15 @@
 #include "render.h"
+
+#include <math.h>
 #include <GL/glut.h>
 #include <stdio.h>
+#include <string.h>
+#include "mouse_state.h"
+
+#include "shape_editor.h"
+#include <time.h>
+
+static MouseState *main_mouse_state;
 
 #define GRID_FILL_R 10
 #define GRID_FILL_G 20
@@ -50,13 +59,14 @@ static void gen_grid_texture() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex_size, tex_size, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
 }
 
-void render_init(const GLfloat w_width, const GLfloat w_height, const GLfloat g_width, const GLfloat g_height) {
+void render_init(const GLfloat w_width, const GLfloat w_height, const GLfloat g_width, const GLfloat g_height, MouseState *mouse_state) {
     window_width = w_width;
     window_height = w_height;
     grid_width = g_width;
     grid_height = g_height;
     cell_width = w_width / g_width;
     cell_height = w_height / g_height;
+    main_mouse_state = mouse_state;
     glEnable(GL_TEXTURE_2D);
     gen_grid_texture();
 }
@@ -113,6 +123,60 @@ void render_draw(const Grid *g) {
         }
     }
     glEnd();
+
+
+    // shape cursor preview
+    const time_t now = time(NULL);
+    if (main_mouse_state->inside && difftime(now, main_mouse_state->last_move) < MOUSE_MOVEMENT_TIMEOUT) {
+        const bool shape_has_anything = memchr(shape, 1, SHAPE_BUILDER_GRID_W * SHAPE_BUILDER_GRID_H) != NULL;
+
+        const float gx = floorf((float)main_mouse_state->x * (float)g->width / window_width);
+        const float gy = floorf((window_height - (float)main_mouse_state->y) * (float)g->height / window_height);
+
+        if (shape_has_anything) {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glColor4f(CELL_FILL_R, CELL_FILL_G, CELL_FILL_B, 0.4f); // slightly opaque color
+            glBegin(GL_QUADS);
+            for (int sy = 0; sy < SHAPE_BUILDER_GRID_H; sy++) {
+                for (int sx = 0; sx < SHAPE_BUILDER_GRID_W; sx++) {
+                    if (shape[sy * SHAPE_BUILDER_GRID_W + sx]) {
+                        const float x0 = (gx + (float)sx) * cell_width;
+                        const float y0 = (gy + (float)sy) * cell_height;
+                        const float x1 = x0 + cell_width;
+                        const float y1 = y0 + cell_height;
+                        glVertex2f(x0, y0);
+                        glVertex2f(x1, y0);
+                        glVertex2f(x1, y1);
+                        glVertex2f(x0, y1);
+                    }
+                }
+            }
+
+            // draw the area of the shape builder grid
+            glColor4f(CELL_FILL_R, CELL_FILL_G, CELL_FILL_B, 0.08f);
+            glVertex2f(gx * cell_width, gy * cell_height);
+            glVertex2f((gx + SHAPE_BUILDER_GRID_W) * cell_width, gy * cell_height);
+            glVertex2f((gx + SHAPE_BUILDER_GRID_W) * cell_width, (gy + SHAPE_BUILDER_GRID_H) * cell_height);
+            glVertex2f(gx * cell_width, (gy + SHAPE_BUILDER_GRID_H) * cell_height);
+
+            glEnd();
+            glDisable(GL_BLEND);
+        } else {
+            // draw a single cell at the mouse position
+            const float x0 = (float) gx * cell_width;
+            const float y0 = (float) gy * cell_height;
+            const float x1 = x0 + cell_width;
+            const float y1 = y0 + cell_height;
+            glColor3f(CELL_FILL_R, CELL_FILL_G, CELL_FILL_B);
+            glBegin(GL_QUADS);
+            glVertex2f(x0, y0);
+            glVertex2f(x1, y0);
+            glVertex2f(x1, y1);
+            glVertex2f(x0, y1);
+            glEnd();
+        }
+    }
 }
 
 void render_draw_ui(const int iterations, const int delay_ms) {

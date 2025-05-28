@@ -4,8 +4,9 @@
 #include <GL/gl.h>
 
 #include "grid.h"
+#include "mouse_state.h"
 
-void render_init(GLfloat w_width, GLfloat w_height, GLfloat g_width, GLfloat g_height);
+void render_init(GLfloat w_width, GLfloat w_height, GLfloat g_width, GLfloat g_height, MouseState *mouse_state);
 
 void render_resize(GLfloat new_width, GLfloat new_height);
 
